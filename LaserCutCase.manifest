@@ -1,0 +1,10 @@
+{
+	"autodeskProduct":	"Fusion360",
+	"type":	"script",
+	"author":	"Florian",
+	"description":	{
+		"":	"Lasercut case creator script."
+	},
+	"supportedOS":	"windows|mac",
+	"editEnabled":	true
+}
