@@ -6,31 +6,20 @@ import math
 import adsk.core
 import adsk.fusion
 import traceback
+from .EasyFusionAPI import EZFusionAPI
 
 # values in cm
 defaultCaseName = 'Case'
 defaultMaterialThickness = 0.4
 defaultCaseWidth = 30.0
-defaultCaseHeight = 30.0
+defaultCaseLength = 20.0
+defaultCaseHeight = 10.0
 
 # global set of event handlers to keep them referenced for the duration of the command
 handlers = []
 app = adsk.core.Application.get()
 if app:
     ui = app.userInterface
-
-newComp = None
-
-
-def createNewComponent():
-    # Get the active design.
-    product = app.activeProduct
-    design = adsk.fusion.Design.cast(product)
-    rootComp = design.rootComponent
-    allOccs = rootComp.occurrences
-    newOcc = allOccs.addNewComponent(adsk.core.Matrix3D.create())
-    return newOcc.component
-
 
 class CaseCommandExecuteHandler(adsk.core.CommandEventHandler):
     def __init__(self):
@@ -50,6 +39,8 @@ class CaseCommandExecuteHandler(adsk.core.CommandEventHandler):
                     case.materialThickness = unitsMgr.evaluateExpression(input.expression, "mm")
                 elif input.id == 'width':
                     case.width = unitsMgr.evaluateExpression(input.expression, "mm")
+                elif input.id == 'length':
+                    case.length = unitsMgr.evaluateExpression(input.expression, "mm")
                 elif input.id == 'height':
                     case.height = unitsMgr.evaluateExpression(input.expression, "mm")
 
@@ -104,6 +95,9 @@ class CaseCommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
             initBody = adsk.core.ValueInput.createByReal(defaultCaseWidth)
             inputs.addValueInput('width', 'Width', 'mm', initBody)
 
+            initBody = adsk.core.ValueInput.createByReal(defaultCaseLength)
+            inputs.addValueInput('length', 'Length', 'mm', initBody)
+
             initBody = adsk.core.ValueInput.createByReal(defaultCaseHeight)
             inputs.addValueInput('height', 'Height', 'mm', initBody)
 
@@ -117,6 +111,7 @@ class Case:
         self._name = defaultCaseName
         self._materialThickness = defaultMaterialThickness
         self._width = defaultCaseWidth
+        self._length = defaultCaseLength
         self._height = defaultCaseHeight
 
     # properties
@@ -152,40 +147,36 @@ class Case:
     def height(self, value):
         self._height = value
 
+    @property
+    def length(self):
+        return self._length
+
+    @length.setter
+    def length(self, value):
+        self._length = value
+
     def buildCase(self):
-        global newComp
-        newComp = createNewComponent()
-        if newComp is None:
-            ui.messageBox('New component failed to create', 'New Component Failed')
-            return
+        fa = EZFusionAPI()
 
-        # create new sketch
-        sketches = newComp.sketches
-        xyPlane = newComp.xYConstructionPlane
-        xzPlane = newComp.xZConstructionPlane
+        # set parameter names
+        materialThicknessParamName = '%sMaterialThickness' % self.name
+        widthParamName = '%sWidth' % self.name
+        lengthParamName = '%sLength' % self.name
+        heightParamName = '%sHeight' % self.name
 
-        sketch = sketches.add(xzPlane)
-        sketch.name = '%sBottomPlateSketch' % defaultCaseName
-        center = adsk.core.Point3D.create(0, 0, 0)
+        # set sketch parameters
+        fa.create_UserParameter(materialThicknessParamName, self.materialThickness, units='mm', favorite=True)
+        fa.create_UserParameter(widthParamName, self.width, units='mm', favorite=True)
+        fa.create_UserParameter(lengthParamName, self.length, units='mm', favorite=True)
+        fa.create_UserParameter(heightParamName, self.height, units='mm', favorite=True)
 
-        # create base plate sketch
-        cornerPoint = adsk.core.Point3D.create(self.width / 2.0, self.height / 2.0, 0)
+        # create base
+        basePlateSketch = fa.EZSketch()
+        basePlateSketch.sketch.name = '%sBasePlateSketch' % self.name
+        basePlateSketch.create.rectangle([(0, 0), (1, 1)], '2pr', fixPoint=0, expressions=['CaseWidth', lengthParamName])
 
-        recLines = sketch.sketchCurves.sketchLines.addCenterPointRectangle(center, cornerPoint)
-        dims = sketch.sketchDimensions
-
-        line = recLines.item(0)
-        dims.addDistanceDimension(line.startSketchPoint, line.endSketchPoint, 0, adsk.core.Point3D.create(0, 0, 0))
-
-        # extrude
-        extrudes = newComp.features.extrudeFeatures
-        prof = sketch.profiles[0]
-        extInput = extrudes.createInput(prof, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
-
-        distance = adsk.core.ValueInput.createByReal(self.materialThickness)
-        extInput.setDistanceExtent(False, distance)
-        bottomPlate = extrudes.add(extInput)
-        bottomPlate.name = '%sBottomPlate' % defaultCaseName
+        box = fa.EZFeatures()
+        box.create.extrude(basePlateSketch.get.profiles()[0], materialThicknessParamName)
 
 
 def run(context):
