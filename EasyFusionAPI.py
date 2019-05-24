@@ -129,11 +129,10 @@ class EZSketch:
     name is a string which sets the name of the sketch
     visibility is a bool which sets the visibility property of the created sketch
     '''
-    sketch: adsk.fusion.Sketch
 
     def __init__(self, plane=None, name=None, visibility=True, startCurveConstruction=False):
         self.__base__ = BaseClass()
-        self.sketch = None
+        self.sketch = None  # type: adsk.fusion.Sketch
         if plane == None:
             self._parentComponent = self.__base__.rootComp
             self._plane = self.__base__.rootComp.xZConstructionPlane
@@ -1202,7 +1201,7 @@ class EZFeatures:
 
     def __init__(self):
         self.__base__ = BaseClass()
-        self.feature = None
+        self.feature = None  # type: adsk.fusion.Feature
         self._featureType = None
 
         self.modify = Features_modify(self)

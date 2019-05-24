@@ -10,10 +10,10 @@ from .EasyFusionAPI import EZFusionAPI
 
 # values in cm
 defaultCaseName = 'Case'
-defaultMaterialThickness = 0.4
-defaultCaseWidth = 30.0
-defaultCaseLength = 20.0
-defaultCaseHeight = 10.0
+defaultMaterialThickness = 4.0
+defaultCaseWidth = 300.0
+defaultCaseLength = 200.0
+defaultCaseHeight = 100.0
 
 # global set of event handlers to keep them referenced for the duration of the command
 handlers = []
@@ -172,11 +172,12 @@ class Case:
 
         # create base
         basePlateSketch = fa.EZSketch()
+        basePlateSketch.create.rectangle([(0, 0), (1, 1)], '2pr', fixPoint=0, expressions=[widthParamName, lengthParamName])
         basePlateSketch.sketch.name = '%sBasePlateSketch' % self.name
-        basePlateSketch.create.rectangle([(0, 0), (1, 1)], '2pr', fixPoint=0, expressions=['CaseWidth', lengthParamName])
 
         box = fa.EZFeatures()
         box.create.extrude(basePlateSketch.get.profiles()[0], materialThicknessParamName)
+        box.feature.name = '%sBasePlate' % self.name
 
 
 def run(context):
