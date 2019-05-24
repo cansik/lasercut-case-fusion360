@@ -25,7 +25,10 @@
 # Latest Code Available at www.21stCenturyWoodworking.com
 
 
-import adsk.core, adsk.fusion, traceback, math
+import adsk.core
+import adsk.fusion
+import math
+import traceback
 
 
 class BaseClass():
@@ -126,6 +129,7 @@ class EZSketch:
     name is a string which sets the name of the sketch
     visibility is a bool which sets the visibility property of the created sketch
     '''
+    sketch: adsk.fusion.Sketch
 
     def __init__(self, plane=None, name=None, visibility=True, startCurveConstruction=False):
         self.__base__ = BaseClass()
