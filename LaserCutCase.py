@@ -7,10 +7,11 @@ import adsk.core
 import adsk.fusion
 import traceback
 
+# values in cm
 defaultCaseName = 'Case'
-defaultMaterialThickness = 4.0
-defaultCaseWidth = 300.0
-defaultCaseHeight = 300.0
+defaultMaterialThickness = 0.4
+defaultCaseWidth = 30.0
+defaultCaseHeight = 30.0
 
 # global set of event handlers to keep them referenced for the duration of the command
 handlers = []
@@ -46,11 +47,11 @@ class CaseCommandExecuteHandler(adsk.core.CommandEventHandler):
                 if input.id == 'name':
                     case.name = input.value
                 elif input.id == 'materialThickness':
-                    case.headDiameter = unitsMgr.evaluateExpression(input.expression, "mm")
+                    case.materialThickness = unitsMgr.evaluateExpression(input.expression, "mm")
                 elif input.id == 'width':
-                    case.bodyDiameter = unitsMgr.evaluateExpression(input.expression, "mm")
+                    case.width = unitsMgr.evaluateExpression(input.expression, "mm")
                 elif input.id == 'height':
-                    case.headHeight = unitsMgr.evaluateExpression(input.expression, "mm")
+                    case.height = unitsMgr.evaluateExpression(input.expression, "mm")
 
             case.buildCase()
             args.isValidResult = True
@@ -158,12 +159,33 @@ class Case:
             ui.messageBox('New component failed to create', 'New Component Failed')
             return
 
-        # Create a new sketch.
+        # create new sketch
         sketches = newComp.sketches
         xyPlane = newComp.xYConstructionPlane
         xzPlane = newComp.xZConstructionPlane
-        sketch = sketches.add(xyPlane)
+
+        sketch = sketches.add(xzPlane)
+        sketch.name = '%sBottomPlateSketch' % defaultCaseName
         center = adsk.core.Point3D.create(0, 0, 0)
+
+        # create base plate sketch
+        cornerPoint = adsk.core.Point3D.create(self.width / 2.0, self.height / 2.0, 0)
+
+        recLines = sketch.sketchCurves.sketchLines.addCenterPointRectangle(center, cornerPoint)
+        dims = sketch.sketchDimensions
+
+        line = recLines.item(0)
+        dims.addDistanceDimension(line.startSketchPoint, line.endSketchPoint, 0, adsk.core.Point3D.create(0, 0, 0))
+
+        # extrude
+        extrudes = newComp.features.extrudeFeatures
+        prof = sketch.profiles[0]
+        extInput = extrudes.createInput(prof, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+
+        distance = adsk.core.ValueInput.createByReal(self.materialThickness)
+        extInput.setDistanceExtent(False, distance)
+        bottomPlate = extrudes.add(extInput)
+        bottomPlate.name = '%sBottomPlate' % defaultCaseName
 
 
 def run(context):
