@@ -159,7 +159,7 @@ class Case:
         fa = EZFusionAPI()
 
         # set parameter names
-        materialThicknessParamName = '%sMaterialThickness' % self.name
+        materialThicknessParamName = 'MaterialThickness' % self.name
         widthParamName = '%sWidth' % self.name
         lengthParamName = '%sLength' % self.name
         heightParamName = '%sHeight' % self.name
